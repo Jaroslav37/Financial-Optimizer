@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <title>День за минуту</title>
+  <style>
+    :root {
+      --primary: #1a73e8;
+      --success: #34a853;
+      --danger: #ea4335;
+      --warning: #fbbc04;
+      --gift-color: #f9ab00;
+      --investment-color: #4285f4;
+      --bg: #f8f9fa;
+      --card: #ffffff;
+      --border: #e0e0e0;
+      --text: #202124;
+      --text-secondary: #5f6368;
+      --income-color: #34a853;
+      --expense-color: #ea4335;
+      --radius: 12px;
+      --shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f0f2f5; padding: 12px; min-height: 100vh; color: var(--text); }
+    .container { max-width: 700px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+    
+    .header { background: var(--card); border-radius: var(--radius); padding: 16px 20px; box-shadow: var(--shadow); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+    .header h1 { font-size: 20px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+    .date-picker { display: flex; align-items: center; gap: 8px; background: #f1f3f4; border-radius: 8px; padding: 6px 12px; }
+    .date-picker input { border: none; background: transparent; font-size: 14px; font-weight: 500; width: 110px; text-align: center; outline: none; font-family: inherit; }
+    .date-picker button { background: none; border: none; cursor: pointer; font-size: 18px; padding: 2px 6px; border-radius: 4px; }
+    .date-picker button:hover { background: #e0e0e0; }
+    
+    .stats-bar { background: var(--card); border-radius: var(--radius); padding: 14px 20px; box-shadow: var(--shadow); display: flex; gap: 16px; flex-wrap: wrap; }
+    .stat-card { flex: 1; min-width: 100px; text-align: center; padding: 8px; border-radius: 8px; background: #f8f9fa; }
+    .stat-card .label { font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+    .stat-card .value { font-size: 18px; font-weight: 700; }
+    .stat-card.income .value { color: var(--income-color); }
+    .stat-card.expense .value { color: var(--expense-color); }
+    .stat-card.gift .value { color: var(--gift-color); }
+    .stat-card.investment .value { color: var(--investment-color); }
+    .stat-card.balance .value { font-size: 20px; }
+    .month-stats { background: #e8f0fe; border-radius: 8px; padding: 10px 14px; display: flex; gap: 20px; justify-content: center; font-size: 13px; }
+    .month-stats span { font-weight: 600; }
+    .month-stats .m-income { color: var(--income-color); }
+    .month-stats .m-expense { color: var(--expense-color); }
+    
+    .items-list { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+    .items-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--border); font-weight: 600; font-size: 14px; }
+    .items-body { max-height: 300px; overflow-y: auto; }
+    .empty-state { text-align: center; padding: 40px 20px; color: var(--text-secondary); }
+    .empty-state .icon { font-size: 48px; margin-bottom: 8px; }
+    
+    .item-row { display: flex; align-items: center; padding: 10px 16px; border-bottom: 1px solid #f0f0f0; gap: 10px; transition: background 0.15s; }
+    .item-row:hover { background: #f8f9fa; }
+    .item-row .type-badge { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+    .item-row .type-badge.income { background: #e6f4ea; }
+    .item-row .type-badge.expense { background: #fce8e6; }
+    .item-row .type-badge.gift { background: #fef3e0; }
+    .item-row .type-badge.investment { background: #e8f0fe; }
+    .item-row .info { flex: 1; min-width: 0; }
+    .item-row .description { font-weight: 500; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .item-row .meta { font-size: 11px; color: var(--text-secondary); margin-top: 2px; display: flex; gap: 8px; }
+    .item-row .amount { font-weight: 700; font-size: 15px; white-space: nowrap; }
+    .item-row.income .amount { color: var(--income-color); }
+    .item-row.expense .amount { color: var(--expense-color); }
+    .item-row.gift .amount { color: var(--gift-color); }
+    .item-row.investment .amount { color: var(--investment-color); }
+    .item-row .delete-btn { background: none; border: none; cursor: pointer; font-size: 18px; opacity: 0.3; padding: 4px 8px; border-radius: 4px; }
+    .item-row .delete-btn:hover { opacity: 1; background: #fce8e6; }
+    
+    .quick-templates { display: flex; gap: 8px; flex-wrap: wrap; padding: 8px 0; }
+    .quick-btn { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 6px 14px; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: all 0.15s; white-space: nowrap; }
+    .quick-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
+    .quick-btn.income-btn { border-left: 3px solid var(--income-color); }
+    .quick-btn.expense-btn { border-left: 3px solid var(--expense-color); }
+    .quick-btn.gift-btn { border-left: 3px solid var(--gift-color); }
+    .quick-btn.investment-btn { border-left: 3px solid var(--investment-color); }
+    
+    .add-form { background: var(--card); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); }
+    .form-toggle { display: flex; background: #f1f3f4; border-radius: 8px; padding: 3px; margin-bottom: 12px; }
+    .form-toggle button { flex: 1; padding: 8px; border: none; background: transparent; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s; }
+    .form-toggle button.active-income { background: var(--income-color); color: white; }
+    .form-toggle button.active-expense { background: var(--expense-color); color: white; }
+    .form-toggle button.active-gift { background: var(--gift-color); color: white; }
+    .form-toggle button.active-investment { background: var(--investment-color); color: white; }
+    
+    .form-row { display: flex; gap: 8px; margin-bottom: 8px; }
+    .form-row input, .form-row select { padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; outline: none; font-family: inherit; transition: border 0.2s; }
+    .form-row input:focus, .form-row select:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(26,115,232,0.15); }
+    .form-row .desc-input { flex: 2; }
+    .form-row .amount-input { flex: 1; }
+    
+    .btn { padding: 10px 20px; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+    .btn-add { background: var(--success); color: white; width: 100%; margin-top: 4px; }
+    .btn-add:hover { background: #2d8745; }
+    .btn-save { background: var(--primary); color: white; flex: 2; }
+    .btn-save:hover { background: #1557b0; }
+    .btn-cancel { background: #f1f3f4; color: var(--text); flex: 1; }
+    .btn-cancel:hover { background: #e0e0e0; }
+    .form-actions { display: flex; gap: 8px; margin-top: 12px; }
+    .btn-repeat { background: #f1f3f4; color: var(--text); flex: 1; margin-right: 8px; }
+    .btn-repeat:hover { background: #e0e0e0; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>📝 День за минуту</h1>
+    <div class="date-picker">
+      <button onclick="changeDate(-1)">◀</button>
+      <input type="text" id="dateInput" value="<?= todayDate ?>" onchange="loadData()">
+      <button onclick="changeDate(1)">▶</button>
+      <button onclick="goToToday()" style="font-size:12px;">📅</button>
+    </div>
+  </div>
+
+  <div class="stats-bar" id="statsBar">
+    <div class="stat-card income"><div class="label">Доходы</div><div class="value" id="statIncome">0 ₽</div></div>
+    <div class="stat-card expense"><div class="label">Расходы</div><div class="value" id="statExpense">0 ₽</div></div>
+    <div class="stat-card gift"><div class="label">Подарки</div><div class="value" id="statGifts">0 ₽</div></div>
+    <div class="stat-card investment"><div class="label">Инвестиции</div><div class="value" id="statInvestments">0 ₽</div></div>
+  </div>
+
+  <div class="month-stats">
+    <span>📅 За месяц:</span>
+    <span class="m-income">Доходы: <b id="mIncome">0 ₽</b></span>
+    <span class="m-expense">Расходы: <b id="mExpense">0 ₽</b></span>
+    <span>Баланс: <b id="mBalance">0 ₽</b></span>
+  </div>
+
+  <div class="quick-templates" id="quickTemplates"></div>
+
+  <div class="items-list">
+    <div class="items-header"><span>📋 Записи за день</span><span id="itemCount" style="font-weight:400;color:var(--text-secondary)">0 записей</span></div>
+    <div class="items-body" id="itemsBody"><div class="empty-state"><div class="icon">📭</div><div>Нет записей за этот день</div></div></div>
+  </div>
+
+  <div class="add-form">
+    <div class="form-toggle">
+      <button id="btnIncome" class="active-income" onclick="setType('income')">💰 Доход</button>
+      <button id="btnExpense" onclick="setType('expense')">💸 Расход</button>
+      <button id="btnGift" onclick="setType('gift')">🎁 Подарок</button>
+      <button id="btnInvestment" onclick="setType('investment')">📈 Инв.</button>
+    </div>
+
+    <div id="fieldsIncomeExpense" style="display:block;">
+      <div class="form-row">
+        <input type="text" id="descInput" class="desc-input" placeholder="Описание операции..." oninput="onDescChange()">
+        <input type="number" id="amountInput" class="amount-input" placeholder="Сумма" step="0.01" min="0.01">
+      </div>
+      <div class="form-row">
+        <select id="categorySelect" onchange="updateSubcategories()" style="flex:1;"><option value="">Выберите категорию</option></select>
+        <select id="subcategorySelect" style="flex:1;"><option value="">Подкатегория</option></select>
+      </div>
+      <div class="form-row">
+        <select id="sourceSelect" style="flex:1;">
+          <option value="manual">Ручной ввод</option>
+          <option value="sber">Сбер Инвестиции</option>
+          <option value="tinkoff">Тинькофф</option>
+          <option value="other">Другое</option>
+        </select>
+      </div>
+      <div id="extraIncomeFields" style="display:none;">
+        <div class="form-row">
+          <input type="text" id="tickerInput" placeholder="Тикер / ISIN" style="flex:1;">
+          <input type="number" id="taxInput" placeholder="Налог (₽)" step="0.01" value="0" style="flex:1;">
+        </div>
+      </div>
+    </div>
+
+    <div id="fieldsGift" style="display:none;">
+      <div class="form-row"><input type="text" id="personInput" placeholder="Кому / От кого"></div>
+      <div class="form-row"><input type="text" id="giftDescInput" class="desc-input" placeholder="Описание подарка"><input type="number" id="giftAmountInput" class="amount-input" placeholder="Сумма" step="0.01" min="0.01"></div>
+      <div class="form-row"><select id="giftCategorySelect" style="flex:1;"><option value="">Категория подарка</option></select><input type="text" id="eventInput" placeholder="Событие" style="flex:1;"></div>
+    </div>
+
+    <div id="fieldsInvestment" style="display:none;">
+      <div class="form-row"><select id="accountSelect" style="flex:1;"><option value="Сбер Инвестиции">Сбер Инвестиции</option><option value="Тинькофф Инвестиции">Тинькофф Инвестиции</option><option value="ИИС">ИИС</option><option value="Брокерский счёт">Брокерский счёт</option><option value="Другое">Другое</option></select><input type="number" id="investAmountInput" class="amount-input" placeholder="Сумма" step="0.01" min="0.01"></div>
+      <div class="form-row"><input type="text" id="purposeInput" placeholder="Назначение пополнения" style="flex:1;"><select id="goalSelect" style="flex:1;"><option value="Накопление">Накопление</option><option value="Пенсия">Пенсия</option><option value="Крупная покупка">Крупная покупка</option><option value="Дивидендный доход">Дивидендный доход</option><option value="Другое">Другое</option></select></div>
+      <div class="form-row"><input type="text" id="noteInput" placeholder="Примечание"></div>
+    </div>
+
+    <button class="btn btn-add" onclick="addItem()">➕ Добавить в список</button>
+    <div class="form-actions">
+      <button class="btn btn-repeat" onclick="repeatYesterday()">🔄 Повторить вчера</button>
+      <button class="btn btn-save" onclick="saveAll()">💾 Сохранить и перейти к следующему дню</button>
+      <button class="btn btn-cancel" onclick="google.script.host.close()">Закрыть</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let ALL_CATEGORIES = null;
+  let QUICK_TEMPLATES = [];
+  let currentType = 'income';
+  let items = [];
+  let totals = { income: 0, expense: 0, gift: 0, investment: 0 };
+  let detectTimer = null;
+
+  function loadFormConfig() {
+    google.script.run.withSuccessHandler(function(config) {
+      ALL_CATEGORIES = config.categories;
+      QUICK_TEMPLATES = config.quickTemplates;
+      renderQuickTemplates();
+      setType('income');
+      loadData();
+    }).getFormData();
+  }
+
+  function renderQuickTemplates() {
+    const container = document.getElementById('quickTemplates');
+    if (!QUICK_TEMPLATES.length) return;
+    container.innerHTML = QUICK_TEMPLATES.map((t,i) =>
+      `<button class="quick-btn ${t.type}-btn" onclick="quickAdd(${i})">${t.icon} ${t.label}</button>`
+    ).join('');
+  }
+
+  function quickAdd(index) {
+    const t = QUICK_TEMPLATES[index];
+    setType(t.type);
+    if (t.type === 'income' || t.type === 'expense') {
+      document.getElementById('descInput').value = t.label;
+      document.getElementById('categorySelect').value = t.category;
+      updateSubcategories();
+      document.getElementById('subcategorySelect').value = t.subcategory;
+      document.getElementById('sourceSelect').value = t.source;
+      document.getElementById('amountInput').focus();
+    } else if (t.type === 'gift') {
+      document.getElementById('giftDescInput').value = t.label;
+      document.getElementById('giftCategorySelect').value = t.category;
+      document.getElementById('giftAmountInput').focus();
+    } else if (t.type === 'investment') {
+      document.getElementById('purposeInput').value = t.label;
+      document.getElementById('goalSelect').value = t.category;
+      document.getElementById('investAmountInput').focus();
+    }
+  }
+
+  function setType(type) {
+    currentType = type;
+    document.getElementById('btnIncome').className = type === 'income' ? 'active-income' : '';
+    document.getElementById('btnExpense').className = type === 'expense' ? 'active-expense' : '';
+    document.getElementById('btnGift').className = type === 'gift' ? 'active-gift' : '';
+    document.getElementById('btnInvestment').className = type === 'investment' ? 'active-investment' : '';
+
+    document.getElementById('fieldsIncomeExpense').style.display = (type === 'income' || type === 'expense') ? 'block' : 'none';
+    document.getElementById('fieldsGift').style.display = (type === 'gift') ? 'block' : 'none';
+    document.getElementById('fieldsInvestment').style.display = (type === 'investment') ? 'block' : 'none';
+
+    if (type === 'income' || type === 'expense') {
+      updateCategoryOptions();
+      document.getElementById('extraIncomeFields').style.display = (type === 'income') ? 'block' : 'none';
+    }
+    if (type === 'gift') {
+      const catSelect = document.getElementById('giftCategorySelect');
+      catSelect.innerHTML = '<option value="">Категория подарка</option>';
+      const cats = ALL_CATEGORIES?.gift || {};
+      for (const cat in cats) catSelect.innerHTML += `<option value="${cat}">${cat}</option>`;
+    }
+  }
+
+  function updateCategoryOptions() {
+    if (!ALL_CATEGORIES) return;
+    const cats = currentType === 'income' ? ALL_CATEGORIES.income : ALL_CATEGORIES.expense;
+    const select = document.getElementById('categorySelect');
+    select.innerHTML = '<option value="">Выберите категорию</option>';
+    for (const cat in cats) select.innerHTML += `<option value="${cat}">${cat}</option>`;
+    document.getElementById('subcategorySelect').innerHTML = '<option value="">Подкатегория</option>';
+  }
+
+  function updateSubcategories() {
+    if (!ALL_CATEGORIES) return;
+    const cat = document.getElementById('categorySelect').value;
+    const cats = currentType === 'income' ? ALL_CATEGORIES.income : ALL_CATEGORIES.expense;
+    const subs = cats[cat] || [];
+    const select = document.getElementById('subcategorySelect');
+    select.innerHTML = '<option value="">Подкатегория</option>';
+    subs.forEach(s => { select.innerHTML += `<option value="${s}">${s}</option>`; });
+  }
+
+  function onDescChange() {
+    if (detectTimer) clearTimeout(detectTimer);
+    detectTimer = setTimeout(() => {
+      const desc = document.getElementById('descInput').value.trim();
+      if (desc.length < 2) return;
+      const type = currentType;
+      google.script.run.withSuccessHandler(function(result) {
+        if (result && result.category) {
+          document.getElementById('categorySelect').value = result.category;
+          updateSubcategories();
+          if (result.subcategory) {
+            document.getElementById('subcategorySelect').value = result.subcategory;
+          }
+        }
+      }).autoDetectCategory(type, desc);
+    }, 500);
+  }
+
+  function changeDate(delta) {
+    const input = document.getElementById('dateInput');
+    const parts = input.value.split('.');
+    if (parts.length !== 3) return;
+    const d = new Date(parseInt(parts[2]), parseInt(parts[1])-1, parseInt(parts[0]));
+    d.setDate(d.getDate() + delta);
+    input.value = formatDate(d);
+    loadData();
+  }
+
+  function goToToday() { document.getElementById('dateInput').value = formatDate(new Date()); loadData(); }
+  function formatDate(d) { return String(d.getDate()).padStart(2,'0') + '.' + String(d.getMonth()+1).padStart(2,'0') + '.' + d.getFullYear(); }
+
+  function loadData() {
+    const dateStr = document.getElementById('dateInput').value.trim();
+    if (!dateStr) return;
+    google.script.run.withSuccessHandler(function(result) {
+      if (result.success) {
+        items = result.items || [];
+        totals.income = result.totalIncome || 0;
+        totals.expense = result.totalExpense || 0;
+        totals.gift = result.totalGifts || 0;
+        totals.investment = result.totalInvestments || 0;
+        renderItems();
+        updateStats();
+      }
+    }).getUnifiedDayData(dateStr);
+    // Загружаем месячные итоги
+    google.script.run.withSuccessHandler(function(m) {
+      document.getElementById('mIncome').textContent = (m.income || 0).toFixed(2) + ' ₽';
+      document.getElementById('mExpense').textContent = (m.expenses || 0).toFixed(2) + ' ₽';
+      const bal = (m.balance || 0).toFixed(2);
+      document.getElementById('mBalance').textContent = (bal >= 0 ? '+' : '') + bal + ' ₽';
+    }).getUnifiedMonthTotals(dateStr);
+  }
+
+  function addItem() {
+    const type = currentType;
+    let item = { id: null, type: type };
+
+    if (type === 'income' || type === 'expense') {
+      const desc = document.getElementById('descInput').value.trim();
+      const amount = parseFloat(document.getElementById('amountInput').value);
+      const category = document.getElementById('categorySelect').value;
+      const subcategory = document.getElementById('subcategorySelect').value;
+      const source = document.getElementById('sourceSelect').value;
+      if (!desc) { alert('Введите описание'); return; }
+      if (isNaN(amount) || amount <= 0) { alert('Введите корректную сумму'); return; }
+      if (!category) { alert('Выберите категорию'); return; }
+      item.description = desc; item.amount = amount; item.category = category;
+      item.subcategory = subcategory; item.source = source;
+      if (type === 'income') {
+        item.ticker = document.getElementById('tickerInput').value.trim();
+        item.tax = parseFloat(document.getElementById('taxInput').value) || 0;
+      }
+      document.getElementById('descInput').value = ''; document.getElementById('amountInput').value = '';
+      document.getElementById('categorySelect').value = ''; document.getElementById('subcategorySelect').innerHTML = '<option value="">Подкатегория</option>';
+      document.getElementById('tickerInput').value = ''; document.getElementById('taxInput').value = '0';
+    } else if (type === 'gift') {
+      const person = document.getElementById('personInput').value.trim();
+      const desc = document.getElementById('giftDescInput').value.trim();
+      const amount = parseFloat(document.getElementById('giftAmountInput').value);
+      const category = document.getElementById('giftCategorySelect').value;
+      const event = document.getElementById('eventInput').value.trim();
+      if (!person) { alert('Укажите кому/от кого'); return; }
+      if (!desc) { alert('Введите описание'); return; }
+      if (isNaN(amount) || amount <= 0) { alert('Введите сумму'); return; }
+      if (!category) { alert('Выберите категорию'); return; }
+      item.person = person; item.description = desc; item.amount = amount;
+      item.category = category; item.event = event;
+      document.getElementById('personInput').value = ''; document.getElementById('giftDescInput').value = '';
+      document.getElementById('giftAmountInput').value = ''; document.getElementById('eventInput').value = '';
+    } else if (type === 'investment') {
+      const account = document.getElementById('accountSelect').value;
+      const amount = parseFloat(document.getElementById('investAmountInput').value);
+      const purpose = document.getElementById('purposeInput').value.trim();
+      const goal = document.getElementById('goalSelect').value;
+      const note = document.getElementById('noteInput').value.trim();
+      if (!purpose) { alert('Введите назначение'); return; }
+      if (isNaN(amount) || amount <= 0) { alert('Введите сумму'); return; }
+      item.account = account; item.description = purpose; item.amount = amount;
+      item.category = goal; item.note = note;
+      document.getElementById('investAmountInput').value = ''; document.getElementById('purposeInput').value = '';
+      document.getElementById('noteInput').value = '';
+    }
+
+    items.push(item);
+    totals[type] += item.amount;
+    renderItems();
+    updateStats();
+    if (type === 'income' || type === 'expense') document.getElementById('descInput').focus();
+    else if (type === 'gift') document.getElementById('personInput').focus();
+    else document.getElementById('purposeInput').focus();
+  }
+
+  function repeatYesterday() {
+    const input = document.getElementById('dateInput');
+    const parts = input.value.split('.');
+    if (parts.length !== 3) return;
+    const d = new Date(parseInt(parts[2]), parseInt(parts[1])-1, parseInt(parts[0]));
+    d.setDate(d.getDate() - 1);
+    const yesterdayStr = formatDate(d);
+    google.script.run.withSuccessHandler(function(result) {
+      if (result.success && result.items && result.items.length > 0) {
+        for (const item of result.items) {
+          const newItem = { ...item, id: null };
+          items.push(newItem);
+          totals[item.type] = (totals[item.type] || 0) + item.amount;
+        }
+        renderItems();
+        updateStats();
+        alert('✅ Добавлено ' + result.items.length + ' записей со вчерашнего дня');
+      } else {
+        alert('Вчера не было записей');
+      }
+    }).getUnifiedDayData(yesterdayStr);
+  }
+
+  function deleteItem(index) {
+    if (!confirm('Удалить эту запись?')) return;
+    const item = items[index];
+    totals[item.type] -= item.amount;
+    items.splice(index, 1);
+    renderItems();
+    updateStats();
+  }
+
+  function renderItems() {
+    const body = document.getElementById('itemsBody');
+    document.getElementById('itemCount').textContent = items.length + ' записей';
+    if (items.length === 0) {
+      body.innerHTML = '<div class="empty-state"><div class="icon">📭</div><div>Нет записей за этот день</div></div>';
+      return;
+    }
+    body.innerHTML = items.map((item,i) => {
+      let icon = '';
+      if (item.type === 'income') icon = '💰';
+      else if (item.type === 'expense') icon = '💸';
+      else if (item.type === 'gift') icon = '🎁';
+      else if (item.type === 'investment') icon = '📈';
+      let meta = item.category;
+      if (item.subcategory) meta += ' → ' + item.subcategory;
+      if (item.type === 'gift' && item.person) meta += ' • ' + item.person + (item.event ? ' (' + item.event + ')' : '');
+      if (item.type === 'investment' && item.account) meta += ' • ' + item.account;
+      let sign = (item.type === 'income' || item.type === 'gift' || item.type === 'investment') ? '+' : '-';
+      return `<div class="item-row ${item.type}">
+        <div class="type-badge ${item.type}">${icon}</div>
+        <div class="info">
+          <div class="description">${escapeHtml(item.description)}</div>
+          <div class="meta">${escapeHtml(meta)}</div>
+        </div>
+        <div class="amount">${sign}${item.amount.toFixed(2)} ₽</div>
+        <button class="delete-btn" onclick="deleteItem(${i})">🗑️</button>
+      </div>`;
+    }).join('');
+  }
+
+  function updateStats() {
+    document.getElementById('statIncome').textContent = totals.income.toFixed(2) + ' ₽';
+    document.getElementById('statExpense').textContent = totals.expense.toFixed(2) + ' ₽';
+    document.getElementById('statGifts').textContent = totals.gift.toFixed(2) + ' ₽';
+    document.getElementById('statInvestments').textContent = totals.investment.toFixed(2) + ' ₽';
+  }
+
+  function saveAll() {
+    const dateStr = document.getElementById('dateInput').value.trim();
+    if (!dateStr) { alert('Введите дату'); return; }
+    if (items.length === 0 && !confirm('Нет записей. Продолжить?')) return;
+    const btn = document.querySelector('.btn-save');
+    const origText = btn.textContent;
+    btn.textContent = '⏳ Сохранение...';
+    btn.disabled = true;
+    google.script.run
+      .withSuccessHandler(function(result) {
+        btn.textContent = origText;
+        btn.disabled = false;
+        if (result.success) {
+          alert(result.message || '✅ Данные сохранены!');
+          changeDate(1);
+        } else {
+          alert('❌ Ошибка: ' + (result.error || 'Неизвестная'));
+        }
+      })
+      .withFailureHandler(function(error) {
+        alert('❌ Ошибка соединения: ' + error);
+        btn.textContent = origText;
+        btn.disabled = false;
+      })
+      .saveUnifiedDayData(dateStr, JSON.parse(JSON.stringify(items)));
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  document.getElementById('dateInput').value = '<?= todayDate ?>';
+  loadFormConfig();
+</script>
+</body>
+</html>
