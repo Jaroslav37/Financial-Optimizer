@@ -1,7 +1,8 @@
 # Финансовый трекер – личные финансы в Google Sheets
 
 > **Автор:** [Ярослав\Jaroslav37]  
-> **Проект на GitVerse:** [https://gitverse.ru/Jaroslav37/Financial_Optimizer]  
+> **Проект на GitVerse:** [https://gitverse.ru/Jaroslav37/Financial_Optimizer]**
+> Проект на Github:** [https://github.com/Jaroslav37/Financial-Optimizer]**
 > **Лицензия:** MIT + Attribution (см. ниже)
 
 Полноценная система управления личными финансами прямо в Google Таблицах. Учёт доходов и расходов, бюджетирование, долги, ипотека, облигации, фьючерсы, акции, аналитика и многое другое. **Без автоматического импорта из банков – только ручной ввод**, что даёт полный контроль над данными.
